@@ -311,7 +311,7 @@ def send_counter_anfrage():
     bundle.add_content(msg.build())
     bundle = bundle.build()
     client.send(bundle)
-
+    print("Counter Anfrage gesendet")
 
 # Update Screen Display Zeichne die Zahlen und Stop Bildschirm
 def update_the_screen():
