@@ -76,9 +76,13 @@ mouse = Mouse()
 mouse.position = (10000, 10000)
 root = Tk()  # TK root
 local_ip = None
+is_master_modus = False
 while local_ip is None:
     try:
         local_ip = getIP()
+        if local_ip == '192.168.4.1':
+            is_master_modus = True
+
     except:
         print("OHH")
         pass
@@ -207,13 +211,21 @@ def pin_inside_minus_resc(channel):
     # root.after(1, send_counter_info, address[0])
 
 
+# IP Adrees Hanler
+def handle_ips(ip_addr):
+    global checked_in_ips
+    if ip_addr not in checked_in_ips:
+        checked_in_ips.append(ip_addr)
+
+
 # OSC Handler
 def got_set_inside(address: str, *args: List[Any]) -> None:
     if len(args) > 0:
         print(args, flush=True)
         inside = args[1]
         set_inside(inside)
-        t = threading.Thread(target=send_counter_info, args=(address[0],))
+        handle_ips(address[0])
+        t = threading.Thread(target=send_counter_info_to_all)
         t.start()
 
 
@@ -222,31 +234,36 @@ def got_set_maximum(address: str, *args: List[Any]) -> None:
         print(args, flush=True)
         maximum = args[1]
         set_maximum(maximum)
-        t = threading.Thread(target=send_counter_info, args=(address[0],))
+        handle_ips(address[0])
+        t = threading.Thread(target=send_counter_info_to_all)
         t.start()
 
 
 def got_maximum_plus(address: str, *args: List[Any]) -> None:
     maximum_plus()
-    t = threading.Thread(target=send_counter_info, args=(address[0],))
+    handle_ips(address[0])
+    t = threading.Thread(target=send_counter_info_to_all)
     t.start()
 
 
 def got_maximum_minus(address: str, *args: List[Any]) -> None:
     maximum_minus()
-    t = threading.Thread(target=send_counter_info, args=(address[0],))
+    handle_ips(address[0])
+    t = threading.Thread(target=send_counter_info_to_all)
     t.start()
 
 
 def got_inside_plus(address: str, *args: List[Any]) -> None:
     inside_plus()
-    t = threading.Thread(target=send_counter_info, args=(address[0],))
+    handle_ips(address[0])
+    t = threading.Thread(target=send_counter_info_to_all)
     t.start()
 
 
 def got_inside_minus(address: str, *args: List[Any]) -> None:
     inside_minus()
-    t = threading.Thread(target=send_counter_info, args=(address[0],))
+    handle_ips(address[0])
+    t = threading.Thread(target=send_counter_info_to_all)
     t.start()
 
 
@@ -269,6 +286,21 @@ def send_counter_info(adress_send_to):
     print("counter_info an {} gesendet mit max {} und inside {}".format(adress_send_to, max_people_allowed,
                                                                         people_inside), flush=True)
     client.send(bundle)
+
+
+def send_counter_info_to_all():
+    global max_people_allowed, people_inside
+    for i in checked_in_ips:
+        client = udp_client.SimpleUDPClient(i, 9001)
+        msg = osc_message_builder.OscMessageBuilder(address="/counter_info")
+        bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
+        msg.add_arg(max_people_allowed)
+        msg.add_arg(people_inside)
+        bundle.add_content(msg.build())
+        bundle = bundle.build()
+        print("counter_info an {} gesendet mit max {} und inside {}".format(i, max_people_allowed,
+                                                                            people_inside), flush=True)
+        client.send(bundle)
 
 
 # Update Screen Display Zeichne die Zahlen und Stop Bildschirm
@@ -512,7 +544,7 @@ my_text3 = str(people_inside) + "/"
 numbers_left = mainCanvas.create_text(540, 900, anchor=NE, text=my_text3, fill='white',
                                       font=('adineue PRO Bold', 80, 'bold'),
                                       state='normal')
-if local_ip == '192.168.4.1':
+if is_master_modus:
     slave_master = mainCanvas.create_image(1080, 0, image=master_img, anchor=NE)
 else:
     slave_master = mainCanvas.create_image(1080, 0, image=slave_img, anchor=NE)
