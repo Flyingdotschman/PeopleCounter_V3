@@ -303,6 +303,16 @@ def send_counter_info_to_all():
         client.send(bundle)
 
 
+# Im Falle von Slave Modus frage nach den Akutellen Countern
+def send_counter_anfrage():
+    client = udp_client.SimpleUDPClient('192.168.4.1', 9001)
+    msg = osc_message_builder.OscMessageBuilder(address="/counter_info")
+    bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
+    bundle.add_content(msg.build())
+    bundle = bundle.build()
+    client.send(bundle)
+
+
 # Update Screen Display Zeichne die Zahlen und Stop Bildschirm
 def update_the_screen():
     global max_people_allowed, people_inside
@@ -355,7 +365,7 @@ def start_osc_server():
     dispat.map("/counter/inside_minus", got_inside_minus, needs_reply_address=True)
     dispat.map("/counter/max_plus", got_maximum_plus, needs_reply_address=True)
     dispat.map("/counter/max_minus", got_maximum_minus, needs_reply_address=True)
-
+    dispat.map("/counter/counter_info", got_counter_info, needs_reply_address=True)
     print(local_ip, flush=True)
     server = osc_server.ThreadingOSCUDPServer((local_ip, 9001), dispat)
 
@@ -548,6 +558,7 @@ if is_master_modus:
     slave_master = mainCanvas.create_image(1080, 0, image=master_img, anchor=NE)
 else:
     slave_master = mainCanvas.create_image(1080, 0, image=slave_img, anchor=NE)
+    root.after(5, send_counter_anfrage)
 
 root.after(1, update_the_screen)
 
