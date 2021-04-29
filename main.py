@@ -52,11 +52,10 @@ if platform.system() != "Windows":
 
 small_window = False
 
-font_file = "/home/pi/PeopleCounter_V2/otherfont.otf"
+font_file = "/home/pi/PeopleCounter_V3/otherfont.otf"
 
 pyglet.font.add_file(font_file)
 myfont = pyglet.font.load('adineue PRO Bold')
-
 
 # First Variables definition
 
@@ -66,11 +65,11 @@ people_inside = 0  # Momentane Anzahl der drinnen befindlichen Personen
 index_video = 0
 file_list = []
 server = []
+
+checked_in_ips = []
 first_time_video_played = True
 
 video_player = []
-
-
 
 keyboard = Controller()
 mouse = Mouse()
@@ -83,12 +82,14 @@ if not small_window:
 
 # Bilder werden geladen im Hintergrund
 if platform.system() != "Windows":
-    background_go = PhotoImage(file="/home/pi/PeopleCounter_V2/Go.png")
-    background_stop = PhotoImage(file="/home/pi/PeopleCounter_V2/Stop.png")
+    background_go = PhotoImage(file="/home/pi/PeopleCounter_V3/Go.png")
+    background_stop = PhotoImage(file="/home/pi/PeopleCounter_V3/Stop.png")
+    slave_img = PhotoImage(file="/home/pi/PeopleCounter_V3/Slave.png")
+    master_img = PhotoImage(file="/home/pi/PeopleCounter_V3/Master.png")
 
     width = int((1920 - 1312) * .9)
     height = width
-    img = Image.open("/home/pi/PeopleCounter_V2/Logo.png")
+    img = Image.open("/home/pi/PeopleCounter_V3/Logo.png")
     img = img.resize((width, height), Image.ANTIALIAS)
     logo = ImageTk.PhotoImage(img)
     # logo = PhotoImage(img)
@@ -100,7 +101,7 @@ else:
 # Anfang Funktionen Definition
 def load_last_file():  # Laed den letzten Stand der Perseonen
     try:
-        with open("/home/pi/PeopleCounter_V2/reset/save.pkl", "rb") as f:
+        with open("/home/pi/PeopleCounter_V3/reset/save.pkl", "rb") as f:
             maximum, inside = pickle.load(f)
             if maximum is None:
                 maximum = 20
@@ -114,7 +115,7 @@ def load_last_file():  # Laed den letzten Stand der Perseonen
 
 def save_last_file(maximum, inside):  # Speicher Anzahl in reset/save.pkl
     print("Starte Speichern")
-    with open("/home/pi/PeopleCounter_V2/reset/save.pkl", "wb+") as f:
+    with open("/home/pi/PeopleCounter_V3/reset/save.pkl", "wb+") as f:
         pickle.dump([maximum, inside], f)
     print("Ende Speichern")
 
@@ -178,7 +179,7 @@ def pin_inside_plus_resc(channel):
     inside_plus()
     print(channel, flush=True)
     print("Pin Inside Plus Empfangen", flush=True)
-    #threading.Timer(.01, beep_buzzer).start()
+    # threading.Timer(.01, beep_buzzer).start()
     t = threading.Thread(target=beep_buzzer)
     t.start()
     # root.after(1, send_counter_info, address[0])
@@ -188,7 +189,7 @@ def pin_inside_minus_resc(channel):
     inside_minus()
     print(channel, flush=True)
     print("Pin Inside Minus Empfangen", flush=True)
-    #threading.Timer(.01, beep_buzzer).start()
+    # threading.Timer(.01, beep_buzzer).start()
     t = threading.Thread(target=beep_buzzer)
     t.start()
     # root.after(1, send_counter_info, address[0])
@@ -240,7 +241,7 @@ def got_inside_minus(address: str, *args: List[Any]) -> None:
 def got_counter_info(address: str, *args: List[Any]) -> None:
     t = threading.Thread(target=send_counter_info, args=(address[0],))
     t.start()
-    #root.after(1, send_counter_info, address[0])
+    # root.after(1, send_counter_info, address[0])
 
 
 # Sende Counter zurück an Sender
@@ -294,8 +295,9 @@ def update_the_screen():
         mainCanvas.itemconfigure(numbers_right, state='hidden')
         mainCanvas.itemconfigure(numbers_left, state='hidden')
 
-    #root.update()
+    # root.update()
     print("Ende Screen zeichnen")
+
 
 # Starte Server
 def start_osc_server():
@@ -309,14 +311,7 @@ def start_osc_server():
     dispat.map("/counter/inside_minus", got_inside_minus, needs_reply_address=True)
     dispat.map("/counter/max_plus", got_maximum_plus, needs_reply_address=True)
     dispat.map("/counter/max_minus", got_maximum_minus, needs_reply_address=True)
-    dispat.map("/counter/counter_info", got_counter_info, needs_reply_address=True)
-   # try:
-   #     hostname = socket.gethostname()
-   #     local_ip = socket.gethostbyname(hostname + ".local")
-  #  except:
-   #     local_ip = "192.168.4.1"
-    #local_ip = "192.168.4.1"
-    #local_ip = getIP()
+
     print(local_ip, flush=True)
     server = osc_server.ThreadingOSCUDPServer((local_ip, 9001), dispat)
 
@@ -411,7 +406,7 @@ def start_video_player():
                     video_player.hide_video()
                 video_player.play_sync()
                 sleep(3)
-                #sleep(duration_of_video)
+                # sleep(duration_of_video)
             else:
                 break
         else:
@@ -440,8 +435,8 @@ def usb_video_handler():
         print("usb_vide_handler Go")
         try:
             if check_usb_stick_exists():
-        # tt = threading.Thread(target=start_video_player)
-            # tt.start()
+                # tt = threading.Thread(target=start_video_player)
+                # tt.start()
                 if not videoplayerthread.is_alive():
                     file_list = []
                     walktree("/media/pi", addtolist)
@@ -459,7 +454,6 @@ def usb_video_handler():
         except:
             print("Something went wrong with the usb or videplayer, going to retry now")
         sleep(1)
-
 
 
 def beep_buzzer():
@@ -486,25 +480,28 @@ max_people_allowed, people_inside = load_last_file()
 videoplayerthread = threading.Thread(target=start_video_player)
 checkifvideoplayerisalliveTread = threading.Thread(target=usb_video_handler)
 checkifvideoplayerisalliveTread.start()
+
 # Erstellen der GUI
 mainCanvas = Canvas(root)
 mainCanvas.pack(fill="both", expand=True)
-#root.after(3000, check_usb_stick_exists)
+# root.after(3000, check_usb_stick_exists)
 root.after(2, starte_server_thread)
 backgroud_stele = mainCanvas.create_image(0, 0, image=background_go, anchor="nw")
 logo_bottom = mainCanvas.create_image((1080 / 2), (1312 + (1920 - 1312) / 2), image=logo, anchor=CENTER)
 my_text1 = 'PERSONEN'
 personen_text = mainCanvas.create_text(540, 1070, anchor=CENTER, text=my_text1, fill='white',
-                       font=('adineue PRO Bold', 80, 'bold'),
-                       state='normal')
+                                       font=('adineue PRO Bold', 80, 'bold'),
+                                       state='normal')
 my_text3 = str(max_people_allowed)
-numbers_right = mainCanvas.create_text(540, 900, anchor=NW, text=my_text3, fill='white', font=('adineue PRO Bold', 80, 'bold'),
-                       state='normal')
+numbers_right = mainCanvas.create_text(540, 900, anchor=NW, text=my_text3, fill='white',
+                                       font=('adineue PRO Bold', 80, 'bold'),
+                                       state='normal')
 my_text3 = str(people_inside) + "/"
-numbers_left = mainCanvas.create_text(540, 900, anchor=NE, text=my_text3, fill='white', font=('adineue PRO Bold', 80, 'bold'),
-                       state='normal')
+numbers_left = mainCanvas.create_text(540, 900, anchor=NE, text=my_text3, fill='white',
+                                      font=('adineue PRO Bold', 80, 'bold'),
+                                      state='normal')
 
-
+slave_master = mainCanvas.create_image(1080, 0, image=master_img, anchor=NE)
 
 root.after(1, update_the_screen)
 
