@@ -76,7 +76,7 @@ keyboard = Controller()
 mouse = Mouse()
 mouse.position = (10000, 10000)
 root = Tk()  # TK root
-
+local_ip = getIP()
 if not small_window:
     root.attributes('-fullscreen', True)
     # root.geometry("1090x1930")
@@ -310,11 +310,11 @@ def start_osc_server():
     dispat.map("/counter/max_plus", got_maximum_plus, needs_reply_address=True)
     dispat.map("/counter/max_minus", got_maximum_minus, needs_reply_address=True)
     dispat.map("/counter/counter_info", got_counter_info, needs_reply_address=True)
-    try:
-        hostname = socket.gethostname()
-        local_ip = socket.gethostbyname(hostname + ".local")
-    except:
-        local_ip = "192.168.4.1"
+   # try:
+   #     hostname = socket.gethostname()
+   #     local_ip = socket.gethostbyname(hostname + ".local")
+  #  except:
+   #     local_ip = "192.168.4.1"
     #local_ip = "192.168.4.1"
     local_ip = getIP()
     print(local_ip, flush=True)
