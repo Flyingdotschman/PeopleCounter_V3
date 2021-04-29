@@ -320,7 +320,11 @@ def send_counter_anfrage():
 def got_slave_info(address: str, *args: List[Any]) -> None:
     if len(args) > 0:
         print(args, flush=True)
-
+        maximum = args[1]
+        inside = args[2]
+        set_maximum(maximum)
+        set_inside(inside)
+        
 # Update Screen Display Zeichne die Zahlen und Stop Bildschirm
 def update_the_screen():
     global max_people_allowed, people_inside
