@@ -75,7 +75,12 @@ keyboard = Controller()
 mouse = Mouse()
 mouse.position = (10000, 10000)
 root = Tk()  # TK root
-local_ip = getIP()
+local_ip = None
+while local_ip is None:
+    try:
+        local_ip = getIP()
+    except:
+        pass
 if not small_window:
     root.attributes('-fullscreen', True)
     # root.geometry("1090x1930")
