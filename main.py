@@ -306,7 +306,7 @@ def send_counter_info_to_all():
 # Im Falle von Slave Modus frage nach den Akutellen Countern
 def send_counter_anfrage():
     client = udp_client.SimpleUDPClient('192.168.4.1', 9001)
-    msg = osc_message_builder.OscMessageBuilder(address="/counter_info")
+    msg = osc_message_builder.OscMessageBuilder(address="/counter/counter_info")
     bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
     bundle.add_content(msg.build())
     bundle = bundle.build()
