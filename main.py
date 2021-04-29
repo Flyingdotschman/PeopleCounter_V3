@@ -506,7 +506,7 @@ my_text3 = str(people_inside) + "/"
 numbers_left = mainCanvas.create_text(540, 900, anchor=NE, text=my_text3, fill='white',
                                       font=('adineue PRO Bold', 80, 'bold'),
                                       state='normal')
-if local_ip is '192.168.4.1':
+if local_ip == '192.168.4.1':
     slave_master = mainCanvas.create_image(1080, 0, image=master_img, anchor=NE)
 else:
     slave_master = mainCanvas.create_image(1080, 0, image=slave_img, anchor=NE)
