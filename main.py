@@ -268,8 +268,7 @@ def got_inside_minus(address: str, *args: List[Any]) -> None:
 
 
 def got_counter_info(address: str, *args: List[Any]) -> None:
-    if len(args) > 0:
-        print(args, flush=True)
+
     t = threading.Thread(target=send_counter_info, args=(address[0],))
     t.start()
     # root.after(1, send_counter_info, address[0])
@@ -316,6 +315,11 @@ def send_counter_anfrage():
     client.send(bundle)
     print("Counter Anfrage gesendet")
     root.after(100,send_counter_anfrage)
+
+
+def got_slave_info(address: str, *args: List[Any]) -> None:
+    if len(args) > 0:
+        print(args, flush=True)
 
 # Update Screen Display Zeichne die Zahlen und Stop Bildschirm
 def update_the_screen():
@@ -370,6 +374,7 @@ def start_osc_server():
     dispat.map("/counter/max_plus", got_maximum_plus, needs_reply_address=True)
     dispat.map("/counter/max_minus", got_maximum_minus, needs_reply_address=True)
     dispat.map("/counter/counter_info", got_counter_info, needs_reply_address=True)
+    dispat.map("/counter_info", got_slave_info, needs_reply_address=True)
     print(local_ip, flush=True)
     server = osc_server.ThreadingOSCUDPServer((local_ip, 9001), dispat)
 
