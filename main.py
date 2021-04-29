@@ -268,6 +268,8 @@ def got_inside_minus(address: str, *args: List[Any]) -> None:
 
 
 def got_counter_info(address: str, *args: List[Any]) -> None:
+    if len(args) > 0:
+        print(args, flush=True)
     t = threading.Thread(target=send_counter_info, args=(address[0],))
     t.start()
     # root.after(1, send_counter_info, address[0])
@@ -313,6 +315,7 @@ def send_counter_anfrage():
     bundle = bundle.build()
     client.send(bundle)
     print("Counter Anfrage gesendet")
+    root.after(100,send_counter_anfrage)
 
 # Update Screen Display Zeichne die Zahlen und Stop Bildschirm
 def update_the_screen():
