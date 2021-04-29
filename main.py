@@ -88,10 +88,10 @@ if platform.system() != "Windows":
     height = 200
     img = Image.open("/home/pi/PeopleCounter_V3/Slave.png")
     img = img.resize((width, height), Image.ANTIALIAS)
-    slave_img = PhotoImage(img)
+    slave_img = ImageTk.PhotoImage(img)
     img = Image.open("/home/pi/PeopleCounter_V3/Master.png")
     img = img.resize((width, height), Image.ANTIALIAS)
-    master_img = PhotoImage(img)
+    master_img = ImageTk.PhotoImage(img)
 
     width = int((1920 - 1312) * .9)
     height = width
