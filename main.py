@@ -84,8 +84,14 @@ if not small_window:
 if platform.system() != "Windows":
     background_go = PhotoImage(file="/home/pi/PeopleCounter_V3/Go.png")
     background_stop = PhotoImage(file="/home/pi/PeopleCounter_V3/Stop.png")
-    slave_img = PhotoImage(file="/home/pi/PeopleCounter_V3/Slave.png")
-    master_img = PhotoImage(file="/home/pi/PeopleCounter_V3/Master.png")
+    width = 200
+    height = 200
+    img = Image.open("/home/pi/PeopleCounter_V3/Slave.png")
+    img = img.resize((width, height), Image.ANTIALIAS)
+    slave_img = PhotoImage(img)
+    img = Image.open("/home/pi/PeopleCounter_V3/Master.png")
+    img = img.resize((width, height), Image.ANTIALIAS)
+    master_img = PhotoImage(img)
 
     width = int((1920 - 1312) * .9)
     height = width
