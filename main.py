@@ -80,6 +80,7 @@ while local_ip is None:
     try:
         local_ip = getIP()
     except:
+        print("OHH")
         pass
 if not small_window:
     root.attributes('-fullscreen', True)
