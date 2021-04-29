@@ -316,7 +316,7 @@ def start_osc_server():
   #  except:
    #     local_ip = "192.168.4.1"
     #local_ip = "192.168.4.1"
-    local_ip = getIP()
+    #local_ip = getIP()
     print(local_ip, flush=True)
     server = osc_server.ThreadingOSCUDPServer((local_ip, 9001), dispat)
 
