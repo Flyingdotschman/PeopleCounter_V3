@@ -314,7 +314,7 @@ def send_counter_anfrage():
     bundle = bundle.build()
     client.send(bundle)
     print("Counter Anfrage gesendet")
-    root.after(100,send_counter_anfrage)
+    root.after(5000, send_counter_anfrage)
 
 
 def got_slave_info(address: str, *args: List[Any]) -> None:
