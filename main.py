@@ -84,8 +84,8 @@ if not small_window:
 if platform.system() != "Windows":
     background_go = PhotoImage(file="/home/pi/PeopleCounter_V3/Go.png")
     background_stop = PhotoImage(file="/home/pi/PeopleCounter_V3/Stop.png")
-    width = 200
-    height = 200
+    width = 100
+    height = 100
     img = Image.open("/home/pi/PeopleCounter_V3/Slave.png")
     img = img.resize((width, height), Image.ANTIALIAS)
     slave_img = ImageTk.PhotoImage(img)
@@ -506,8 +506,10 @@ my_text3 = str(people_inside) + "/"
 numbers_left = mainCanvas.create_text(540, 900, anchor=NE, text=my_text3, fill='white',
                                       font=('adineue PRO Bold', 80, 'bold'),
                                       state='normal')
-
-slave_master = mainCanvas.create_image(1080, 0, image=master_img, anchor=NE)
+if local_ip is '192.168.4.1':
+    slave_master = mainCanvas.create_image(1080, 0, image=master_img, anchor=NE)
+else:
+    slave_master = mainCanvas.create_image(1080, 0, image=slave_img, anchor=NE)
 
 root.after(1, update_the_screen)
 
