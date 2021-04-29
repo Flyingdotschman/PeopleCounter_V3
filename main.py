@@ -9,6 +9,8 @@ from pythonosc import udp_client
 from pythonosc import osc_bundle_builder, osc_message_builder
 from pythonosc import dispatcher, osc_server
 
+from get_wlan0IP import get_wlan0ip as getIP
+
 from omxplayer.player import OMXPlayer
 
 import pyglet
@@ -313,7 +315,8 @@ def start_osc_server():
         local_ip = socket.gethostbyname(hostname + ".local")
     except:
         local_ip = "192.168.4.1"
-    local_ip = "192.168.4.1"
+    #local_ip = "192.168.4.1"
+    local_ip = getIP()
     print(local_ip, flush=True)
     server = osc_server.ThreadingOSCUDPServer((local_ip, 9001), dispat)
 
