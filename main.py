@@ -200,7 +200,7 @@ def set_maximum_and_inside(m, i):
     max_people_allowed = m
     people_inside = i
     save_last_file(max_people_allowed, people_inside)
-    root.after(1, update_the_screen)
+    root.after(100, update_the_screen)
 
 
 def max_people_reached():
