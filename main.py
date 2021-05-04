@@ -142,6 +142,9 @@ def inside_plus():
         people_inside = people_inside + 1
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
+    if not is_master_modus:
+        t = threading.Thread(target=send_inside_plus_to_master)
+        t.start()
 
 
 def inside_minus():
@@ -151,6 +154,9 @@ def inside_minus():
         people_inside = people_inside - 1
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
+    if not is_master_modus:
+        t = threading.Thread(target=send_inside_minus_to_master)
+        t.start()
 
 
 def set_inside(i):
@@ -166,6 +172,9 @@ def maximum_plus():
         max_people_allowed = max_people_allowed + 1
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
+    if not is_master_modus:
+        t = threading.Thread(target=send_max_plus_to_master)
+        t.start()
 
 
 def maximum_minus():
@@ -174,7 +183,9 @@ def maximum_minus():
         max_people_allowed = max_people_allowed - 1
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
-
+    if not is_master_modus:
+        t = threading.Thread(target=send_max_minus_to_master)
+        t.start()
 
 def set_maximum(i):
     global max_people_allowed
@@ -328,6 +339,46 @@ def got_slave_info(address: str, *args: List[Any]) -> None:
         inside = args[2]
         set_maximum(maximum)
         set_inside(inside)
+
+
+def send_inside_plus_to_master():
+    client = udp_client.SimpleUDPClient("192.168.4.1", 9001)
+    msg = osc_message_builder.OscMessageBuilder(address="/counter/inside_plus")
+    bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
+    msg.add_arg(0)
+    bundle.add_content(msg.build())
+    bundle = bundle.build()
+    client.send(bundle)
+
+
+def send_inside_minus_to_master():
+    client = udp_client.SimpleUDPClient("192.168.4.1", 9001)
+    msg = osc_message_builder.OscMessageBuilder(address="/counter/inside_minus")
+    bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
+    msg.add_arg(0)
+    bundle.add_content(msg.build())
+    bundle = bundle.build()
+    client.send(bundle)
+
+
+def send_max_plus_to_master():
+    client = udp_client.SimpleUDPClient("192.168.4.1", 9001)
+    msg = osc_message_builder.OscMessageBuilder(address="/counter/max_plus")
+    bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
+    msg.add_arg(0)
+    bundle.add_content(msg.build())
+    bundle = bundle.build()
+    client.send(bundle)
+
+
+def send_max_minus_to_master():
+    client = udp_client.SimpleUDPClient("192.168.4.1", 9001)
+    msg = osc_message_builder.OscMessageBuilder(address="/counter/max_minus")
+    bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
+    msg.add_arg(0)
+    bundle.add_content(msg.build())
+    bundle = bundle.build()
+    client.send(bundle)
         
 # Update Screen Display Zeichne die Zahlen und Stop Bildschirm
 def update_the_screen():
