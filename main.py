@@ -301,7 +301,7 @@ def send_counter_info_to_all():
         msg.add_arg(people_inside)
         bundle.add_content(msg.build())
         bundle = bundle.build()
-        print("counter_info an {} gesendet mit max {} und inside {}".format(i, max_people_allowed,
+        print("counter_info an {} gesendet mit max {} und inside {}".format(checked_in_ips[i], max_people_allowed,
                                                                             people_inside), flush=True)
         client.send(bundle)
 
