@@ -268,7 +268,7 @@ def got_inside_minus(address: str, *args: List[Any]) -> None:
 
 
 def got_counter_info(address: str, *args: List[Any]) -> None:
-
+    handle_ips(address[0])
     t = threading.Thread(target=send_counter_info, args=(address[0],))
     t.start()
     # root.after(1, send_counter_info, address[0])
