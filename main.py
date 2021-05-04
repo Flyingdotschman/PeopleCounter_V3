@@ -292,8 +292,8 @@ def send_counter_info(adress_send_to):
 def send_counter_info_to_all():
     global max_people_allowed, people_inside
     print(checked_in_ips)
-    for i in checked_in_ips:
-        print(i)
+    for i in len(checked_in_ips):
+        print(checked_in_ips[i])
         client = udp_client.SimpleUDPClient(checked_in_ips[i], 9001)
         msg = osc_message_builder.OscMessageBuilder(address="/counter_info")
         bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
