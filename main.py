@@ -277,6 +277,7 @@ def got_counter_info(address: str, *args: List[Any]) -> None:
 # Sende Counter zurück an Sender
 def send_counter_info(adress_send_to):
     global max_people_allowed, people_inside
+    print(adress_send_to)
     client = udp_client.SimpleUDPClient(adress_send_to, 9001)
     msg = osc_message_builder.OscMessageBuilder(address="/counter_info")
     bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
