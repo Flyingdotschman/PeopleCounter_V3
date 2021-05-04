@@ -187,9 +187,18 @@ def maximum_minus():
         t = threading.Thread(target=send_max_minus_to_master)
         t.start()
 
+
 def set_maximum(i):
     global max_people_allowed
     max_people_allowed = i
+    save_last_file(max_people_allowed, people_inside)
+    root.after(1, update_the_screen)
+
+
+def set_maximum_and_inside(m, i):
+    global max_people_allowed, people_inside
+    max_people_allowed = m
+    people_inside = i
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
 
@@ -337,8 +346,9 @@ def got_slave_info(address: str, *args: List[Any]) -> None:
         print(args, flush=True)
         maximum = args[1]
         inside = args[2]
-        set_maximum(maximum)
-        set_inside(inside)
+        #set_maximum(maximum)
+        #set_inside(inside)
+        set_maximum_and_inside(maximum, inside)
 
 
 def send_inside_plus_to_master():
