@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Stele Steuerung
+# Stele Steuerung Version 3
 from tkinter import *
 from tkinter import font as font
 import socket
@@ -9,7 +9,7 @@ from pythonosc import udp_client
 from pythonosc import osc_bundle_builder, osc_message_builder
 from pythonosc import dispatcher, osc_server
 
-from get_wlan0IP import get_wlan0ip as getIP
+from get_wlan0IP import get_wlan0ip as get_ip
 
 from omxplayer.player import OMXPlayer
 
@@ -24,8 +24,6 @@ from time import sleep as sleep
 
 from typing import List, Any
 
-# from time import sleep
-
 from PIL import Image
 from PIL import ImageTk
 
@@ -35,6 +33,8 @@ import stat
 import subprocess
 from pynput.keyboard import Key, Controller
 from pynput.mouse import Controller as Mouse
+
+# TODO Variable first_time_video_played entfernen, wird nicht genutzt
 
 # GPIO Setups Part 1
 print("Running on {}".format(platform.system()), flush=True)
@@ -50,10 +50,10 @@ if platform.system() != "Windows":
 
 # Konfigs
 
-small_window = False
+small_window = False  # Zeige die Gui in einem nicht bildfüllendem Format, zum Debuggen hilfreich
 
-font_file = "/home/pi/PeopleCounter_V3/otherfont.otf"
-
+# Einrichtung Font
+font_file = "/home/pi/PeopleCounter_V3/otherfont.otf"  # Font zum anzeigen der sChrift
 pyglet.font.add_file(font_file)
 myfont = pyglet.font.load('adineue PRO Bold')
 
@@ -62,38 +62,45 @@ myfont = pyglet.font.load('adineue PRO Bold')
 max_people_allowed = 0  # Maximale Anzahl drinnen befiindlicher Personen
 people_inside = 0  # Momentane Anzahl der drinnen befindlichen Personen
 
-index_video = 0
-file_list = []
-server = []
+index_video = 0  # Index des Angeteigten Videos
+file_list = []  # Gefundene Video dateien
+server = []  # Platzhalter für OSC Server
 
-checked_in_ips = []
-first_time_video_played = True
+checked_in_ips = []  # Sammelstelle der IPs/Devices ,welche Nachrichten an den Master schicken
+first_time_video_played = True  # Wird zum ersten Mal ein Video abgespielt ?
 
-video_player = []
+video_player = []  # Platzhalter für OMXPlayer
 
-keyboard = Controller()
-mouse = Mouse()
-mouse.position = (10000, 10000)
+keyboard = Controller()  # ??
+mouse = Mouse()  # Maus-Kontorller um Maus vom Bildschirm zu schieben
+mouse.position = (10000, 10000)  # Masu aus den Bildschirm schieben
 root = Tk()  # TK root
-local_ip = None
-is_master_modus = False
+local_ip = None  # Platzhalter für eigene IP des Gerätes
+is_master_modus = False  # Default für Master
+
+# Ermitterlung der eigenen IP im Wifi Netzwerk, , an der IP wird Master/Slave Stauts ermittelt. 192.168.4.1
+# -> Master, alle weiteren IP -> Slave
 while local_ip is None:
     try:
-        local_ip = getIP()
+        local_ip = get_ip()
         if local_ip == '192.168.4.1':
             is_master_modus = True
 
     except:
-        print("OHH")
+        print("Waiting for Network to be online")
         pass
+
+
 if not small_window:
     root.attributes('-fullscreen', True)
     # root.geometry("1090x1930")
 
 # Bilder werden geladen im Hintergrund
 if platform.system() != "Windows":
-    background_go = PhotoImage(file="/home/pi/PeopleCounter_V3/Go.png")
-    background_stop = PhotoImage(file="/home/pi/PeopleCounter_V3/Stop.png")
+    background_go = PhotoImage(file="/home/pi/PeopleCounter_V3/Go.png") # Hintergrund, wenn Leute rein düfen -> Branding möglich
+    background_stop = PhotoImage(file="/home/pi/PeopleCounter_V3/Stop.png") # Stop Anzeige, nach möglichkeit gleich
+
+    # Master Slave Symbol auf Größe bringen
     width = 100
     height = 100
     img = Image.open("/home/pi/PeopleCounter_V3/Slave.png")
@@ -103,6 +110,7 @@ if platform.system() != "Windows":
     img = img.resize((width, height), Image.ANTIALIAS)
     master_img = ImageTk.PhotoImage(img)
 
+# Logo unter dem Video
     width = int((1920 - 1312) * .9)
     height = width
     img = Image.open("/home/pi/PeopleCounter_V3/Logo.png")
@@ -115,7 +123,7 @@ else:
 
 
 # Anfang Funktionen Definition
-def load_last_file():  # Laed den letzten Stand der Perseonen
+def load_last_file():  # Laed den letzten Stand der Perseonen Counter
     try:
         with open("/home/pi/PeopleCounter_V3/reset/save.pkl", "rb") as f:
             maximum, inside = pickle.load(f)
@@ -123,7 +131,7 @@ def load_last_file():  # Laed den letzten Stand der Perseonen
                 maximum = 20
             if inside is None:
                 inside = 0
-    except:
+    except:  # Falls kein save vorhanden setzte auf Defaultwerte
         maximum = 20
         inside = 0
     return maximum, inside
@@ -136,66 +144,68 @@ def save_last_file(maximum, inside):  # Speicher Anzahl in reset/save.pkl
     print("Ende Speichern")
 
 
-def inside_plus():
+def inside_plus():  # Erhoehe Inside Counter um Eins und speichere Anzahl
     global people_inside
     if people_inside < 1100:
         people_inside = people_inside + 1
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
-    if not is_master_modus:
+    if not is_master_modus:  # Falls Stele im Slave-Modus, sende an Master
         t = threading.Thread(target=send_inside_plus_to_master)
         t.start()
 
 
-def inside_minus():
+def inside_minus():     # Erniedrige Inside Counter um Eins und speichere neue Anzahl
     global people_inside
     print("Inside ein absziehen")
-    if people_inside > 0:
+    if people_inside > 0:   # Es kann keine negative Anzahl an Personen im Laden sein
         people_inside = people_inside - 1
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
-    if not is_master_modus:
+    if not is_master_modus:  # Falls Stele im Slave-Modus, sende an Master
         t = threading.Thread(target=send_inside_minus_to_master)
         t.start()
 
 
-def set_inside(i):
+def set_inside(i):  # Setze Inside Counter auf Anzahl und speichere
     global people_inside
     people_inside = i
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
 
 
-def maximum_plus():
+def maximum_plus():  # Erhoehe Maximal Counter um Eins und speichere Anzahl
     global max_people_allowed
-    if max_people_allowed < 1000:
+    # TODO: maximal 1000 noetig ??
+    if max_people_allowed < 1000:  # Maximal 1000 Leute
         max_people_allowed = max_people_allowed + 1
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
-    if not is_master_modus:
+    if not is_master_modus:  # Falls Stele im Slave-Modus, sende an Master
         t = threading.Thread(target=send_max_plus_to_master)
         t.start()
 
 
-def maximum_minus():
+def maximum_minus():  # Erniedrige Maximal Counter um Eins und speichere neue Anzahl
     global max_people_allowed
-    if max_people_allowed > 0:
+    if max_people_allowed > 0:  # Maximale Anzahl Personen kann nicht negativ sein
         max_people_allowed = max_people_allowed - 1
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
-    if not is_master_modus:
+    if not is_master_modus:     # Falls Stele im Slave-Modus, sende an Master
         t = threading.Thread(target=send_max_minus_to_master)
         t.start()
 
 
-def set_maximum(i):
+def set_maximum(i):     # Setze Maximal Counter auf Anzahl und speichere
     global max_people_allowed
     max_people_allowed = i
     save_last_file(max_people_allowed, people_inside)
     root.after(1, update_the_screen)
 
 
-def set_maximum_and_inside(m, i):
+def set_maximum_and_inside(m, i):   # Setzte Inside und Maximal Counter gleichzeitig, benoetigt von Stele im Slave-Modus
+    #   um die Antwort des Masters zu verarbeiten. Insbesondere weil sont der "Counter zitter"
     global max_people_allowed, people_inside
     max_people_allowed = m
     people_inside = i
@@ -203,35 +213,38 @@ def set_maximum_and_inside(m, i):
     root.after(100, update_the_screen)
 
 
-def max_people_reached():
+def max_people_reached():   # Abfrage, ob maximale Anzahl Personen erreicht ist bzw darueber liegt. Flag,
+    # steuert spaeter Stop anzeige
     global max_people_allowed, people_inside
     if max_people_allowed > people_inside:
         return False
     return True
 
 
-# PIN EVENT HANLDER
-def pin_inside_plus_resc(channel):
+# PIN EVENT HANDLER
+def pin_inside_plus_resc(channel):  # Wird gecallt wenn der Plus Pin Signal erhaelt. callt  inside_plus und laesst
+    # den Buzzer peepen
+    # Funktion wird durch GPIO Bibliothek als Interrupt gecallt, deswegen u a flush=true bei print noetig
     inside_plus()
     print(channel, flush=True)
     print("Pin Inside Plus Empfangen", flush=True)
-    # threading.Timer(.01, beep_buzzer).start()
-    t = threading.Thread(target=beep_buzzer)
+    t = threading.Thread(target=beep_buzzer)    # Callt Buzzer als Thread um Programm nicht zu unterbrechen, anzuhalten
     t.start()
-    # root.after(1, send_counter_info, address[0])
 
 
-def pin_inside_minus_resc(channel):
+def pin_inside_minus_resc(channel):  # Wird gecallt wenn der Plus Pin Signal erhaelt. callt  inside_minus und laesst
+    # den Buzzer peepen
+    # Funktion wird durch GPIO Bibliothek als Interrupt gecallt, deswegen u a flush=true bei print noetig
     inside_minus()
     print(channel, flush=True)
     print("Pin Inside Minus Empfangen", flush=True)
-    # threading.Timer(.01, beep_buzzer).start()
-    t = threading.Thread(target=beep_buzzer)
+    t = threading.Thread(target=beep_buzzer)     # Callt Buzzer als Thread um Programm nicht zu unterbrechen, anzuhalten
     t.start()
-    # root.after(1, send_counter_info, address[0])
 
 
-# IP Adrees Hanler
+# IP Address Handler
+# Schaut ob die IP-Adresse teil der Liste ist. Falls nicht wird IP-Adresse der Liste hinzugefuegt.
+# Liste wird heran genommen um vom Master an alle bekannten Slave-Stelen und Tablets die aktuellen Counter zu schicken
 def handle_ips(ip_addr):
     global checked_in_ips
     if ip_addr not in checked_in_ips:
@@ -239,7 +252,9 @@ def handle_ips(ip_addr):
 
 
 # OSC Handler
-def got_set_inside(address: str, *args: List[Any]) -> None:
+# got_ Funktionen werden vom OSC - Server gecallt und laufen als seperate Threads ab
+def got_set_inside(address: str, *args: List[Any]) -> None:     # Kommt idR vom Tablet
+    # sendet anschließend neue Counter an alle bekannten IPs
     if len(args) > 0:
         print(args, flush=True)
         inside = args[1]
@@ -249,7 +264,8 @@ def got_set_inside(address: str, *args: List[Any]) -> None:
         t.start()
 
 
-def got_set_maximum(address: str, *args: List[Any]) -> None:
+def got_set_maximum(address: str, *args: List[Any]) -> None:     # Kommt idR vom Tablet
+    # sendet anschließend neue Counter an alle bekannten IPs
     if len(args) > 0:
         print(args, flush=True)
         maximum = args[1]
@@ -259,39 +275,45 @@ def got_set_maximum(address: str, *args: List[Any]) -> None:
         t.start()
 
 
-def got_maximum_plus(address: str, *args: List[Any]) -> None:
+def got_maximum_plus(address: str, *args: List[Any]) -> None:   # Kann vom Tablet oder Slave kommen
+    # sendet anschließend neue Counter an alle bekannten IPs
     maximum_plus()
     handle_ips(address[0])
     t = threading.Thread(target=send_counter_info_to_all)
     t.start()
 
 
-def got_maximum_minus(address: str, *args: List[Any]) -> None:
+def got_maximum_minus(address: str, *args: List[Any]) -> None:  # Kann vom Tablet oder Slave kommen
+    # sendet anschließend neue Counter an alle bekannten IPs
     maximum_minus()
     handle_ips(address[0])
     t = threading.Thread(target=send_counter_info_to_all)
     t.start()
 
 
-def got_inside_plus(address: str, *args: List[Any]) -> None:
+def got_inside_plus(address: str, *args: List[Any]) -> None:    # Kann vom Tablet oder Slave kommen
+    # sendet anschließend neue Counter an alle bekannten IPs
     inside_plus()
     handle_ips(address[0])
     t = threading.Thread(target=send_counter_info_to_all)
     t.start()
 
 
-def got_inside_minus(address: str, *args: List[Any]) -> None:
+def got_inside_minus(address: str, *args: List[Any]) -> None:   # Kann vom Tablet oder Slave kommen
+    # sendet anschließend neue Counter an alle bekannten IPs
     inside_minus()
     handle_ips(address[0])
     t = threading.Thread(target=send_counter_info_to_all)
     t.start()
 
 
-def got_counter_info(address: str, *args: List[Any]) -> None:
+def got_counter_info(address: str, *args: List[Any]) -> None:   # kommt in regelmaeßigen Abstaenden
+    # vom Tablet oder Slave
+    # Counter werden nur an die IP zurueck gesendet von der die Anfrage kam
+    # Anwort wird vom Tablet u. a. dafuer verwendet die Konnektivitaet zu pruefen
     handle_ips(address[0])
     t = threading.Thread(target=send_counter_info, args=(address[0],))
     t.start()
-    # root.after(1, send_counter_info, address[0])
 
 
 # Sende Counter zurück an Sender
@@ -310,12 +332,11 @@ def send_counter_info(adress_send_to):
     client.send(bundle)
 
 
+# Sende Counter an alle IPs in Liste checked_in_ips[]
 def send_counter_info_to_all():
     global max_people_allowed, people_inside
     print(checked_in_ips)
     for i in range(len(checked_in_ips)):
-        print(checked_in_ips[i])
-        print(type(checked_in_ips[i]))
         client = udp_client.SimpleUDPClient(checked_in_ips[i], 9001)
         msg = osc_message_builder.OscMessageBuilder(address="/counter_info")
         bundle = osc_bundle_builder.OscBundleBuilder(osc_bundle_builder.IMMEDIATELY)
@@ -328,7 +349,7 @@ def send_counter_info_to_all():
         client.send(bundle)
 
 
-# Im Falle von Slave Modus frage nach den Akutellen Countern
+# Im Slave Modus frage nach den Akutellen Countern
 def send_counter_anfrage():
     client = udp_client.SimpleUDPClient("192.168.4.1", 9001)
     msg = osc_message_builder.OscMessageBuilder(address="/counter/counter_info")
@@ -341,16 +362,21 @@ def send_counter_anfrage():
     root.after(5000, send_counter_anfrage)
 
 
+# Im Slave-Modus, falls neue Counter vom Master kommen, setze diese als neue Counter, update Anzeige und speichere
+# neue Werte
 def got_slave_info(address: str, *args: List[Any]) -> None:
     if len(args) > 0:
         print(args, flush=True)
         maximum = args[1]
         inside = args[2]
-        #set_maximum(maximum)
-        #set_inside(inside)
+        # set_maximum(maximum)
+        # set_inside(inside)
         set_maximum_and_inside(maximum, inside)
 
 
+# Im Slave-Modus, wenn die Stele einen Durchgang erkennt, werden die entprechenden Counter Veraenderungen an den
+# Master weiter gegeben
+# Master hat immer die 192.168.4.1
 def send_inside_plus_to_master():
     client = udp_client.SimpleUDPClient("192.168.4.1", 9001)
     msg = osc_message_builder.OscMessageBuilder(address="/counter/inside_plus")
@@ -389,53 +415,50 @@ def send_max_minus_to_master():
     bundle.add_content(msg.build())
     bundle = bundle.build()
     client.send(bundle)
-        
+
+
 # Update Screen Display Zeichne die Zahlen und Stop Bildschirm
 def update_the_screen():
     global max_people_allowed, people_inside
     global mainCanvas, video_player
 
     print("Starte Screen zeichnen")
-    if not max_people_reached():
-        mainCanvas.itemconfigure(backgroud_stele, image=background_go)
-        print("Background done")
-        mainCanvas.itemconfigure(logo_bottom, state='normal')
-        print("Logo done")
-        my_text = 'PERSONEN'
+    if not max_people_reached():    # Wenn maxiale Anzahl nicht erreicht
+        mainCanvas.itemconfigure(backgroud_stele, image=background_go)       # GO Hintergrund
+        mainCanvas.itemconfigure(logo_bottom, state='normal')  # Logo hinter Video
+        my_text = 'PERSONEN'    # Text Personen
         mainCanvas.itemconfigure(personen_text, text=my_text, state='normal')
-        my_text = str(max_people_allowed)
+        my_text = str(max_people_allowed)            # Text Anzeige Maximale Anzahl
         mainCanvas.itemconfigure(numbers_right, text=my_text, state='normal')
-        my_text = str(people_inside) + "/"
+        my_text = str(people_inside) + "/"          # Text Anzeige Personenanzahl
         mainCanvas.itemconfigure(numbers_left, text=my_text, state='normal')
-        print("Text done")
+
         try:
 
-            video_player.show_video()
+            video_player.show_video()  # Zeige Video
             print("Show Video done")
         except:
             pass
 
-    else:
+    else:       # Wenn maximale Anzahl Erreicht  - - STOP
         try:
-            video_player.hide_video()
+            video_player.hide_video()  # Blende Video aus
         except:
             pass
-        mainCanvas.itemconfigure(backgroud_stele, image=background_stop)
-        mainCanvas.itemconfigure(logo_bottom, state='hidden')
-        mainCanvas.itemconfigure(personen_text, state='hidden')
-        mainCanvas.itemconfigure(numbers_right, state='hidden')
+        mainCanvas.itemconfigure(backgroud_stele, image=background_stop)    # Zeige Stop Anzeige
+        mainCanvas.itemconfigure(logo_bottom, state='hidden')               # Blende Logo aus
+        mainCanvas.itemconfigure(personen_text, state='hidden')             # Blende Personen Text aus
+        mainCanvas.itemconfigure(numbers_right, state='hidden')             # Blende Counter aus
         mainCanvas.itemconfigure(numbers_left, state='hidden')
 
-    # root.update()
-    print("Ende Screen zeichnen")
 
-
-# Starte Server
+# Starte OSC Server
 def start_osc_server():
     global server
     print("*** STARTE OSC SERVER ***", flush=True)
     dispat = dispatcher.Dispatcher()
 
+    # Empfangbare Messeges mit Functioncalls
     dispat.map("/counter/reset_inside", got_set_inside, needs_reply_address=True)
     dispat.map("/counter/reset_max", got_set_maximum, needs_reply_address=True)
     dispat.map("/counter/inside_plus", got_inside_plus, needs_reply_address=True)
@@ -483,6 +506,7 @@ def addtolist(file, extensions=['.mp4']):
 
 
 def check_usb_stick_exists():
+    # TODO: sind die globalen Variablen hier von Noeten ? Auf den ersten Blick nein
     global index_video, first_time_video_played, videoplayerthread
     print("Checking for USB", flush=True)
 
@@ -492,11 +516,10 @@ def check_usb_stick_exists():
             return True
     return False
 
-    # else:
-    # root.after(1000, check_usb_stick_exists)
 
-
-def start_video_player():
+def start_video_player():   # Starte OMX Videoplayer der am unteren Bildschirmrand angezeigt wird
+    # TODO global variablen checken, file_list muss ziemlich sicher nicht global sein,
+    #  video_player wahrscheinlich auch nicht, first_time_video_played wird gar nicht benutzt
     global file_list, video_player, index_video, first_time_video_played
     print("Laenge von Filelist: {}".format(len(file_list)))
     t = threading.currentThread()
@@ -511,12 +534,11 @@ def start_video_player():
                 index_video = index_video + 1
                 if index_video > len(file_list) - 1:
                     index_video = 0
-
                 try:
                     video_player_playing = video_player.is_playing()
                 except:
                     video_player_playing = False
-                print(video_player_playing)
+
                 if not video_player_playing:
                     video_player = OMXPlayer(filey,
                                              args=['--orientation', '270', '--win', '1312,0,1920,1080', '--no-osd',
@@ -545,7 +567,7 @@ def start_video_player():
             break
 
 
-def starte_server_thread():
+def starte_server_thread():     # Thread in dem der OSC Server gestartet wird
     run_osc_server = threading.Thread(target=start_osc_server)
     run_osc_server.start()
 

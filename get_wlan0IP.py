@@ -1,3 +1,5 @@
+# get_wlan0IP.py
+# Holt sich die IP-Adresse vom Interface wlan0
 import os
 import json
 
