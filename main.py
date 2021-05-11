@@ -573,9 +573,8 @@ def starte_server_thread():     # Thread in dem der OSC Server gestartet wird
 
 
 def checkifvideoplayerisallive():
+    # TODO ist der videoplayerthread als global noetig ?
     global videoplayerthread
-    print(videoplayerthread.is_alive())
-    print("poop")
     while True:
         if not videoplayerthread.is_alive():
             root.after(1000, check_usb_stick_exists)
@@ -583,14 +582,14 @@ def checkifvideoplayerisallive():
 
 
 def usb_video_handler():
-    global videoplayerthread, video_player, file_list
+    # TODO Funktion des usb_video_handlers pruefen
+    global videoplayerthread, video_player, file_list, index_video, first_time_video_played
 
     while True:
-        print("usb_vide_handler Go")
+        print("usb_video_handler Go")
         try:
             if check_usb_stick_exists():
-                # tt = threading.Thread(target=start_video_player)
-                # tt.start()
+
                 if not videoplayerthread.is_alive():
                     file_list = []
                     walktree("/media/pi", addtolist)
@@ -610,7 +609,8 @@ def usb_video_handler():
         sleep(1)
 
 
-def beep_buzzer():
+def beep_buzzer():   # Funktion die den Buzzer peepen laesst
+    # TODO pin_buzzer global ?
     global pin_buzzer
     print("BEEP")
     GPIO.output(pin_buzzer, 1)
@@ -623,13 +623,13 @@ if platform.system() != "Windows":
     GPIO.setup(pin_people_going, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
     GPIO.setup(pin_people_comming, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
-    GPIO.setup(pin_buzzer, GPIO.OUT)
+    GPIO.setup(pin_buzzer, GPIO.OUT)    # Pin fuer Buzzer
     GPIO.output(pin_buzzer, 0)
 
-    GPIO.add_event_detect(pin_people_going, GPIO.RISING, callback=pin_inside_minus_resc)
+    GPIO.add_event_detect(pin_people_going, GPIO.RISING, callback=pin_inside_minus_resc)    # Setzte Interrupts
     GPIO.add_event_detect(pin_people_comming, GPIO.RISING, callback=pin_inside_plus_resc)
 
-# Lade Save File und letzte bekannte Besucher
+# Lade Save File
 max_people_allowed, people_inside = load_last_file()
 videoplayerthread = threading.Thread(target=start_video_player)
 checkifvideoplayerisalliveTread = threading.Thread(target=usb_video_handler)
@@ -638,7 +638,7 @@ checkifvideoplayerisalliveTread.start()
 # Erstellen der GUI
 mainCanvas = Canvas(root)
 mainCanvas.pack(fill="both", expand=True)
-# root.after(3000, check_usb_stick_exists)
+
 root.after(2, starte_server_thread)
 backgroud_stele = mainCanvas.create_image(0, 0, image=background_go, anchor="nw")
 logo_bottom = mainCanvas.create_image((1080 / 2), (1312 + (1920 - 1312) / 2), image=logo, anchor=CENTER)
